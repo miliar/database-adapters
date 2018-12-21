@@ -22,13 +22,14 @@ class DatabaseConnector():
         while True:
             rows = self.cursor.fetchmany(chunksize)
             if rows:
-                yield rows
+                for row in rows:
+                    yield row
             else:
                 break
 
 
 with DatabaseConnector(db_config) as dbc:
     query = 'select * from watchlists limit 20'
-    result = dbc.get_result_iter(query, 1)
+    result = dbc.get_result_iter(query, 3)
     for rows in result:
         print(rows)
