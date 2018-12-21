@@ -1,41 +1,27 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import mysql.connector
-from mysql_config import *
+from mysql_config import db_config
 
 
-# In[2]:
+class DatabaseConnector():
+    def __init__(self, db_config):
+        self.db_config = db_config
+
+    def __enter__(self):
+        self.connection = mysql.connector.connect(**self.db_config)
+        self.cursor = self.connection.cursor()
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        if traceback:
+            print(f'Error : {exception_type} {exception_value}') # implement logging
+        self.cursor.close()
+        self.connection.close()
+
+    def print_query(self, query):
+        self.cursor.execute(query)
+        print(self.cursor.fetchall())
 
 
-cnx = mysql.connector.connect(user=USER, password=PASSWORD, database=DATABASE)
-cursor = cnx.cursor()
-
-
-# In[4]:
-
-
-query = ('select * from watchlists limit 1')
-
-
-# In[5]:
-
-
-cursor.execute(query)
-
-
-# In[6]:
-
-
-print(dict(zip(cursor.column_names, cursor.fetchone())))
-
-
-# In[7]:
-
-
-cursor.close()
-cnx.close()
-
+with DatabaseConnector(db_config) as dbc:
+    query = ('select * from watchlists limit 2')
+    dbc.print_query(query)
