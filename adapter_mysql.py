@@ -1,25 +1,32 @@
 import mysql.connector
+import logging
+import traceback as tb
 
 
 class AdapterMysql():
     def __init__(self, db_config):
-        self.db_config = db_config
+        self.__db_config = db_config
+        self.__logger = logging.getLogger(__name__)
 
     def __enter__(self):
-        self.connection = mysql.connector.connect(**self.db_config)
-        self.cursor = self.connection.cursor()
+        self.__connection = mysql.connector.connect(**self.__db_config)
+        self.__cursor = self.__connection.cursor()
         return self
 
-    def __exit__(self, exception_type, exception_value, traceback):
+    def __exit__(self, *exception):
+        self.__handle_exception(*exception)
+        self.__cursor.close()
+        self.__connection.close()
+
+    def __handle_exception(self, exc_type, exc_value, traceback):
         if traceback:
-            pass  # todo : log
-        self.cursor.close()
-        self.connection.close()
+            exception = tb.format_exception(exc_type, exc_value, traceback)
+            self.__logger.error(exception)
 
     def get_result_iter(self, query, chunksize=10):
-        self.cursor.execute(query)
+        self.__cursor.execute(query)
         while True:
-            rows = self.cursor.fetchmany(chunksize)
+            rows = self.__cursor.fetchmany(chunksize)
             if rows:
                 for row in rows:
                     yield row
