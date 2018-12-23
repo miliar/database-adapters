@@ -1,5 +1,5 @@
 import unittest
-from mysql_config_test import DB_CONFIG, QUERY, QUERY_RESULT
+from mysql_testconfig import DB_CONFIG, QUERY, QUERY_RESULT
 from adapter_mysql import AdapterMysql
 
 

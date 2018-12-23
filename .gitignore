@@ -1,4 +1,3 @@
-.ipynb_checkpoints/
 __pycache__/ 
 mysql_config.py 
-mysql_config_test.py 
+mysql_testconfig.py 
