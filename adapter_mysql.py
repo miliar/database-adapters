@@ -1,8 +1,7 @@
 import mysql.connector
-from mysql_config import db_config
 
 
-class DatabaseConnector():
+class AdapterMysql():
     def __init__(self, db_config):
         self.db_config = db_config
 
@@ -13,7 +12,7 @@ class DatabaseConnector():
 
     def __exit__(self, exception_type, exception_value, traceback):
         if traceback:
-            print(f'Error : {exception_type} {exception_value}')  # todo : log
+            pass  # todo : log
         self.cursor.close()
         self.connection.close()
 
@@ -26,10 +25,3 @@ class DatabaseConnector():
                     yield row
             else:
                 break
-
-
-with DatabaseConnector(db_config) as dbc:
-    query = 'select * from watchlists limit 20'
-    result = dbc.get_result_iter(query, 3)
-    for rows in result:
-        print(rows)
