@@ -1,13 +1,11 @@
-from query_result_saver import QueryResultSaver
-from mysql_testconfig import DB_CONFIG, SAVE_PATH, QUERY as query_mysql
-from adapter_mysql import AdapterMysql
-from bigquery_testconfig import SERVICE_ACC, QUERY as query_bigquery
-from adapter_bigquery import AdapterBigquery
+from table_saver import TableSaver
+from adapters_testconfig import *
+from adapters import AdapterBigquery, AdapterMysql
 import unittest
 import csv
 
 
-class TestQueryResultSaver(unittest.TestCase):
+class TestTableSaver(unittest.TestCase):
     def setUp(self):
         self.save_path = SAVE_PATH + '/test.csv'
         with open(SAVE_PATH + '/test_bigquery.csv', newline='') as bq_csv:
@@ -17,7 +15,7 @@ class TestQueryResultSaver(unittest.TestCase):
 
     def test_result_to_csv_with_bigquery(self):
         with AdapterBigquery(SERVICE_ACC) as adapter:
-            QueryResultSaver(query_bigquery, adapter).result_to_csv(self.save_path)
+            TableSaver(QUERY_BQ, adapter).result_to_csv(self.save_path)
         with open(self.save_path, newline='') as result_csv:
             result = list(csv.reader(result_csv, delimiter=' ', quotechar='|'))
 
@@ -25,7 +23,7 @@ class TestQueryResultSaver(unittest.TestCase):
 
     def test_result_to_csv_with_mysql(self):
         with AdapterMysql(DB_CONFIG) as adapter:
-            QueryResultSaver(query_mysql, adapter).result_to_csv(self.save_path)
+            TableSaver(QUERY_MYSQL, adapter).result_to_csv(self.save_path)
         with open(self.save_path, newline='') as result_csv:
             result = list(csv.reader(result_csv, delimiter=' ', quotechar='|'))
 
@@ -33,4 +31,8 @@ class TestQueryResultSaver(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+    with AdapterMysql(DB_CONFIG) as adapter1:
+        with AdapterBigquery(SERVICE_ACC) as adapter2:
+            table = TableSaver(QUERY_MYSQL, adapter1)
+            table.save_result_in(adapter2, dataset_id='test_data', table_id='test_writing')

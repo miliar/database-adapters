@@ -47,6 +47,23 @@ class AdapterBigquery(AdapterAbstract):
         for row in result:
             yield row.values()
 
+    def save_csv_as_table(self, csv, dataset_id, table_id):
+        dataset_ref = self.__client.dataset(dataset_id)
+        table_ref = dataset_ref.table(table_id)
+        job_config = bigquery.LoadJobConfig()
+        job_config.write_disposition = 'WRITE_TRUNCATE'
+        job_config.source_format = bigquery.SourceFormat.CSV
+        job_config.autodetect = True
+
+        with open(csv, 'rb') as source_file:
+            job = self.__client.load_table_from_file(
+                source_file,
+                table_ref,
+                location='US',
+                job_config=job_config)
+
+        job.result()
+
 
 class AdapterMysql(AdapterAbstract):
     def __init__(self, db_config):
