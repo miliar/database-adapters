@@ -1,6 +1,5 @@
 __pycache__/ 
-mysql_config.py 
-mysql_testconfig.py 
+adapters_config.py 
+adapters_testconfig.py 
 bigquery_keys/ 
-bigquery_testconfig.py 
 save_data/ 
