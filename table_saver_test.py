@@ -35,4 +35,4 @@ if __name__ == '__main__':
     with AdapterMysql(DB_CONFIG) as adapter1:
         with AdapterBigquery(SERVICE_ACC) as adapter2:
             table = TableSaver(QUERY_MYSQL, adapter1)
-            table.save_result_in(adapter2, dataset_id='test_data', table_id='test_writing')
+            table.save_result_in(adapter2, dataset_id='test_data', table_id='test_writing2')

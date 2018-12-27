@@ -47,7 +47,7 @@ class AdapterBigquery(AdapterAbstract):
         for row in result:
             yield row.values()
 
-    def save_csv_as_table(self, csv, dataset_id, table_id):
+    def create_table_from_csv(self, csv, dataset_id, table_id):
         dataset_ref = self.__client.dataset(dataset_id)
         table_ref = dataset_ref.table(table_id)
         job_config = bigquery.LoadJobConfig()
@@ -63,6 +63,18 @@ class AdapterBigquery(AdapterAbstract):
                 job_config=job_config)
 
         job.result()
+
+    def create_table_from_iter(self, row_iter, dataset_id, table_id):
+        dataset_ref = self.__client.dataset(dataset_id)
+        table_ref = dataset_ref.table(table_id)
+        schema = [bigquery.SchemaField("column1", "STRING", mode="NULLABLE"),
+                  bigquery.SchemaField("column2", "STRING", mode="NULLABLE")]
+        table = bigquery.Table(table_ref, schema=schema)
+        table = self.__client.create_table(table)
+        table = self.__client.get_table(table_ref)
+
+        errors = self.__client.insert_rows(table, list(row_iter))
+        print(errors)
 
 
 class AdapterMysql(AdapterAbstract):
