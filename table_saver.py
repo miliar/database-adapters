@@ -1,5 +1,4 @@
 import csv
-from adapters_testconfig import SAVE_PATH
 
 
 class TableSaver():
@@ -9,8 +8,9 @@ class TableSaver():
 
     def result_to_csv(self, file_name):
         with open(file_name, 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            schema, result = self.__adapter.get_result_table(self.__query)  # rewrite for table schema
+            writer = csv.writer(csvfile)
+            schema, result = self.__adapter.get_result_table(self.__query)
+            writer.writerow(schema)
             for row in result:
                 writer.writerow(row)
 
