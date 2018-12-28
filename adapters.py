@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from google.cloud import bigquery
 import mysql.connector
+from mysql.connector import FieldType
 import logging
 import traceback as tb
 
@@ -32,8 +33,8 @@ class AdapterAbstract(ABC):
             self.__logger.error(exception)
 
     @abstractmethod
-    def get_result_iter(self, query, *args):
-        pass
+    def get_result_table(self, query):
+        """ Should return table_schema, row_iter """
 
 
 class AdapterBigquery(AdapterAbstract):
@@ -41,10 +42,19 @@ class AdapterBigquery(AdapterAbstract):
         super().__init__()
         self.__client = bigquery.Client.from_service_account_json(service_acc)
 
-    def get_result_iter(self, query):
+    def get_result_table(self, query):
         query_job = self.__client.query(query)
-        result = query_job.result()
-        for row in result:
+        query_result = query_job.result()
+        table_schema = self.__get_table_schema(query_result)
+        row_iter = self.__get_row_iter(query_result)
+        return table_schema, row_iter
+
+    def __get_table_schema(self, query_result):
+        schema = [(column.name, column.field_type) for column in query_result.schema]
+        return schema
+
+    def __get_row_iter(self, query_result):
+        for row in query_result:
             yield row.values()
 
     def create_table_from_csv(self, csv, dataset_id, table_id):
@@ -64,17 +74,16 @@ class AdapterBigquery(AdapterAbstract):
 
         job.result()
 
-    def create_table_from_iter(self, row_iter, dataset_id, table_id):
+    def create_table(self, table_schema, row_iter, dataset_id, table_id):
         dataset_ref = self.__client.dataset(dataset_id)
         table_ref = dataset_ref.table(table_id)
-        schema = [bigquery.SchemaField("column1", "STRING", mode="NULLABLE"),
-                  bigquery.SchemaField("column2", "STRING", mode="NULLABLE")]
+        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
         table = bigquery.Table(table_ref, schema=schema)
         table = self.__client.create_table(table)
         table = self.__client.get_table(table_ref)
 
         errors = self.__client.insert_rows(table, list(row_iter))
-        print(errors)
+        print(errors)  # needs error handling
 
 
 class AdapterMysql(AdapterAbstract):
@@ -92,8 +101,35 @@ class AdapterMysql(AdapterAbstract):
         self.__cursor.close()
         self.__connection.close()
 
-    def get_result_iter(self, query, chunksize=10):
+    def get_result_table(self, query):
         self.__cursor.execute(query)
+        table_schema = self.__get_table_schema()
+        row_iter = self.__get_row_iter()
+        return table_schema, row_iter
+
+    def __get_table_schema(self):
+        column_names = [column[0] for column in self.__cursor.description]
+        column_types = [column[1] for column in self.__cursor.description]
+        column_types = self.__map_to_adapter_datatypes(column_types)
+        schema = zip(column_names, column_types)
+        return list(schema)
+
+    def __map_to_adapter_datatypes(self, datatypes):
+        # not accurate, needs testing
+        adapter_datatypes = []
+        for datatype in datatypes:
+            if datatype in FieldType.get_string_types():
+                adapter_datatypes.append('STRING')
+            elif datatype in FieldType.get_number_types():
+                adapter_datatypes.append('FLOAT')
+            elif datatype in FieldType.get_timestamp_types():
+                adapter_datatypes.append('TIMESTAMP')
+            else:
+                adapter_datatypes.append('STRUCT')
+
+        return adapter_datatypes
+
+    def __get_row_iter(self, chunksize=10):
         while True:
             rows = self.__cursor.fetchmany(chunksize)
             if rows:
