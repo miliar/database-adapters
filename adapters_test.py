@@ -7,7 +7,7 @@ class TestAdapterBigquery(unittest.TestCase):
     def test_get_result_table(self):
         with AdapterBigquery(SERVICE_ACC) as adapter:
             schema, rows = adapter.get_result_table(QUERY_BQ)
-            print(schema)  # needs to be tested, also for other than STRING
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
             self.assertEqual(list(rows), QUERY_RESULT_BQ)
 
     def test_create_table(self):
@@ -21,9 +21,16 @@ class TestAdapterMysql(unittest.TestCase):
     def test_get_result_table(self):
         with AdapterMysql(DB_CONFIG) as adapter:
             schema, rows = adapter.get_result_table(QUERY_MYSQL)
-            print(schema)
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
             self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
+
+    def test_create_table(self):
+        pass
 
 
 if __name__ == '__main__':
-    unittest.main()
+    # unittest.main()
+    with AdapterMysql(DB_CONFIG) as adapter_mysql:
+        schema, rows = adapter_mysql.get_result_table(QUERY_MYSQL)
+        with AdapterBigquery(SERVICE_ACC) as adapter_bq:
+            adapter_bq.create_table(schema, rows, dataset_id='test_data', table_id='test_writing')

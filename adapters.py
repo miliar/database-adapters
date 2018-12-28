@@ -36,6 +36,10 @@ class AdapterAbstract(ABC):
     def get_result_table(self, query):
         """ Should return table_schema, row_iter """
 
+    @abstractmethod
+    def create_table(self, table_schema, row_iter, dataset_id, table_id):
+        """ Creates table at dataset_id.table_id. Source: table_schema and row_iter """
+
 
 class AdapterBigquery(AdapterAbstract):
     def __init__(self, service_acc):
@@ -57,6 +61,17 @@ class AdapterBigquery(AdapterAbstract):
         for row in query_result:
             yield row.values()
 
+    def create_table(self, table_schema, row_iter, dataset_id, table_id):
+        dataset_ref = self.__client.dataset(dataset_id)
+        table_ref = dataset_ref.table(table_id)
+        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
+        table = bigquery.Table(table_ref, schema=schema)
+        table = self.__client.create_table(table)
+        table = self.__client.get_table(table_ref)
+
+        errors = self.__client.insert_rows(table, list(row_iter))
+        print(errors)  # needs error handling
+
     def create_table_from_csv(self, csv, dataset_id, table_id):
         dataset_ref = self.__client.dataset(dataset_id)
         table_ref = dataset_ref.table(table_id)
@@ -73,17 +88,6 @@ class AdapterBigquery(AdapterAbstract):
                 job_config=job_config)
 
         job.result()
-
-    def create_table(self, table_schema, row_iter, dataset_id, table_id):
-        dataset_ref = self.__client.dataset(dataset_id)
-        table_ref = dataset_ref.table(table_id)
-        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
-        table = bigquery.Table(table_ref, schema=schema)
-        table = self.__client.create_table(table)
-        table = self.__client.get_table(table_ref)
-
-        errors = self.__client.insert_rows(table, list(row_iter))
-        print(errors)  # needs error handling
 
 
 class AdapterMysql(AdapterAbstract):
@@ -137,3 +141,6 @@ class AdapterMysql(AdapterAbstract):
                     yield row
             else:
                 break
+
+    def create_table(self, table_schema, row_iter, dataset_id, table_id):
+        pass
