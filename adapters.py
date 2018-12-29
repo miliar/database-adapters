@@ -33,13 +33,17 @@ class AdapterAbstract(ABC):
             exception = tb.format_exception(exc_type, exc_value, traceback)
             self.__logger.error(exception)
 
+    def log_exception(self, exc):
+        self.__logger.error(exc)
+
     @abstractmethod
     def get_result_table(self, *args):
-        """ Should return table_schema, row_iter """
+        """ Should return table_schema, row_iter. """
 
     @abstractmethod
     def create_table(self, table_schema, row_iter, *args):
-        """ Should create Table from Source: table_schema and row_iter """
+        """ Should create Table from Source: table_schema and row_iter.
+        Supports BQ datatypes """
 
 
 class AdapterBigquery(AdapterAbstract):
@@ -71,24 +75,13 @@ class AdapterBigquery(AdapterAbstract):
         table = self.__client.get_table(table_ref)
 
         errors = self.__client.insert_rows(table, list(row_iter))
-        print(errors)  # needs error handling
+        if errors != []:
+            self.log_exception(errors)
 
-    def create_table_from_csv(self, csv, dataset_id, table_id):
+    def delete_table(self, dataset_id, table_id):
         dataset_ref = self.__client.dataset(dataset_id)
         table_ref = dataset_ref.table(table_id)
-        job_config = bigquery.LoadJobConfig()
-        job_config.write_disposition = 'WRITE_TRUNCATE'
-        job_config.source_format = bigquery.SourceFormat.CSV
-        job_config.autodetect = True
-
-        with open(csv, 'rb') as source_file:
-            job = self.__client.load_table_from_file(
-                source_file,
-                table_ref,
-                location='US',
-                job_config=job_config)
-
-        job.result()
+        self.__client.delete_table(table_ref)
 
 
 class AdapterMysql(AdapterAbstract):
@@ -120,18 +113,38 @@ class AdapterMysql(AdapterAbstract):
         return list(schema)
 
     def __map_to_adapter_datatypes(self, datatypes):
-        # not accurate, needs testing
-        adapter_datatypes = []
-        for datatype in datatypes:
-            if datatype in FieldType.get_string_types():
-                adapter_datatypes.append('STRING')
-            elif datatype in FieldType.get_number_types():
-                adapter_datatypes.append('FLOAT')
-            elif datatype in FieldType.get_timestamp_types():
-                adapter_datatypes.append('TIMESTAMP')
-            else:
-                adapter_datatypes.append('STRUCT')
+        mysql_to_adapter = {
+            'DECIMAL': 'FLOAT',
+            'TINY': 'INTEGER',
+            'SHORT': 'INTEGER',
+            'LONG': 'INTEGER',
+            'FLOAT': 'FLOAT',
+            'DOUBLE': 'FLOAT',
+            'NULL': 'INTEGER',
+            'TIMESTAMP': 'TIMESTAMP',
+            'LONGLONG': 'INTEGER',
+            'INT24': 'INTEGER',
+            'DATE': 'DATE',
+            'TIME': 'TIME',
+            'DATETIME': 'DATETIME',
+            'YEAR': 'INTEGER',
+            'NEWDATE': 'DATE',
+            'VARCHAR': 'STRING',
+            'BIT': 'INTEGER',
+            'JSON': 'STRUCT',
+            'NEWDECIMAL': 'INTEGER',
+            'ENUM': 'STRING',
+            'SET': 'STRING',
+            'TINY_BLOB': 'BYTES',
+            'MEDIUM_BLOB': 'BYTES',
+            'LONG_BLOB': 'BYTES',
+            'BLOB': 'BYTES',
+            'VAR_STRING': 'STRING',
+            'STRING': 'STRING',
+            'GEOMETRY': 'GEOMETRY'
+        }
 
+        adapter_datatypes = [mysql_to_adapter[FieldType.get_info(d)] for d in datatypes]
         return adapter_datatypes
 
     def __get_row_iter(self, chunksize=10):
@@ -144,7 +157,7 @@ class AdapterMysql(AdapterAbstract):
                 break
 
     def create_table(self, table_schema, row_iter, dataset_id, table_id):
-        pass
+        raise NotImplementedError('Create Table in Mysql not implemented')
 
 
 class AdapterCsv(AdapterAbstract):
@@ -159,4 +172,8 @@ class AdapterCsv(AdapterAbstract):
                 writer.writerow(row)
 
     def get_result_table(self, file_name):
-        pass
+        with open(file_name, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            table_schema = [eval(item) for item in next(reader)]
+            row_iter = [row for row in reader] # make generator
+            return table_schema, row_iter

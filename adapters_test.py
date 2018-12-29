@@ -11,7 +11,12 @@ class TestAdapterBigquery(unittest.TestCase):
             self.assertEqual(list(rows), QUERY_RESULT_BQ)
 
     def test_create_table(self):
-        pass
+        with AdapterBigquery(SERVICE_ACC) as adapter:
+            adapter.create_table(QUERY_RESULT_SCHEMA, QUERY_RESULT_BQ, 'test_data', 'test_writing')
+            schema, rows = adapter.get_result_table(QUERY_BQ)
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
+            self.assertEqual(list(rows), QUERY_RESULT_BQ)
+            adapter.delete_table('test_data', 'test_writing')
 
 
 class TestAdapterMysql(unittest.TestCase):
@@ -30,8 +35,14 @@ class TestAdapterCsv(unittest.TestCase):
         pass
 
     def test_create_table(self):
-        pass
+        with AdapterCsv() as adapter:
+            adapter.create_table(QUERY_RESULT_SCHEMA, QUERY_RESULT_MYSQL, SAVE_PATH + '/test.csv')
+            schema, rows = adapter.get_result_table(SAVE_PATH + '/test.csv')
+            print(schema)
+            print(rows)
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
+            #self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(warnings='ignore')
