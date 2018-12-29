@@ -1,6 +1,6 @@
 import unittest
 from adapters_testconfig import *
-from adapters import AdapterBigquery, AdapterMysql
+from adapters import AdapterBigquery, AdapterMysql, AdapterCsv
 
 
 class TestAdapterBigquery(unittest.TestCase):
@@ -11,9 +11,6 @@ class TestAdapterBigquery(unittest.TestCase):
             self.assertEqual(list(rows), QUERY_RESULT_BQ)
 
     def test_create_table(self):
-        pass
-
-    def test_create_table_from_csv(self):
         pass
 
 
@@ -28,9 +25,13 @@ class TestAdapterMysql(unittest.TestCase):
         pass
 
 
+class TestAdapterCsv(unittest.TestCase):
+    def test_get_result_table(self):
+        pass
+
+    def test_create_table(self):
+        pass
+
+
 if __name__ == '__main__':
-    # unittest.main()
-    with AdapterMysql(DB_CONFIG) as adapter_mysql:
-        schema, rows = adapter_mysql.get_result_table(QUERY_MYSQL)
-        with AdapterBigquery(SERVICE_ACC) as adapter_bq:
-            adapter_bq.create_table(schema, rows, dataset_id='test_data', table_id='test_writing')
+    unittest.main()

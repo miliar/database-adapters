@@ -4,6 +4,7 @@ import mysql.connector
 from mysql.connector import FieldType
 import logging
 import traceback as tb
+import csv
 
 
 class AdapterAbstract(ABC):
@@ -33,12 +34,12 @@ class AdapterAbstract(ABC):
             self.__logger.error(exception)
 
     @abstractmethod
-    def get_result_table(self, query):
+    def get_result_table(self, *args):
         """ Should return table_schema, row_iter """
 
     @abstractmethod
-    def create_table(self, table_schema, row_iter, dataset_id, table_id):
-        """ Creates table at dataset_id.table_id. Source: table_schema and row_iter """
+    def create_table(self, table_schema, row_iter, *args):
+        """ Should create Table from Source: table_schema and row_iter """
 
 
 class AdapterBigquery(AdapterAbstract):
@@ -143,4 +144,19 @@ class AdapterMysql(AdapterAbstract):
                 break
 
     def create_table(self, table_schema, row_iter, dataset_id, table_id):
+        pass
+
+
+class AdapterCsv(AdapterAbstract):
+    def __init__(self):
+        super().__init__()
+
+    def create_table(self, table_schema, row_iter, file_name):
+        with open(file_name, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(table_schema)
+            for row in row_iter:
+                writer.writerow(row)
+
+    def get_result_table(self, file_name):
         pass
