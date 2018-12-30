@@ -5,6 +5,7 @@ from mysql.connector import FieldType
 import logging
 import traceback as tb
 import csv
+import re
 
 
 class AdapterAbstract(ABC):
@@ -172,8 +173,31 @@ class AdapterCsv(AdapterAbstract):
                 writer.writerow(row)
 
     def get_result_table(self, file_name):
+        table_schema = self.__get_table_schema(file_name)
+        row_iter = self.__get_row_iter(file_name)
+        return table_schema, row_iter
+
+    def __get_table_schema(self, file_name):
+        header = self.__get_table_header(file_name)
+        schema = self.__get_schema_from_header(header)
+        return schema
+
+    def __get_table_header(self, file_name):
         with open(file_name, newline='') as csvfile:
             reader = csv.reader(csvfile)
-            table_schema = [eval(item) for item in next(reader)]
-            row_iter = [row for row in reader] # make generator
-            return table_schema, row_iter
+            header = next(reader)
+        return header
+
+    def __get_schema_from_header(self, header):
+        schema = []
+        for column in header:
+            column_schema = re.findall("'(.+?)'", column)
+            schema.append(tuple(column_schema))
+        return schema
+
+    def __get_row_iter(self, file_name):
+        with open(file_name, newline='') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)  # skip header
+            for row in reader:
+                yield(tuple(row))

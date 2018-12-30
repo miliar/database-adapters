@@ -32,16 +32,17 @@ class TestAdapterMysql(unittest.TestCase):
 
 class TestAdapterCsv(unittest.TestCase):
     def test_get_result_table(self):
-        pass
+        with AdapterCsv() as adapter:
+            schema, rows = adapter.get_result_table(CSV_MYSQL_PATH)
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
+            self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
 
     def test_create_table(self):
         with AdapterCsv() as adapter:
-            adapter.create_table(QUERY_RESULT_SCHEMA, QUERY_RESULT_MYSQL, SAVE_PATH + '/test.csv')
-            schema, rows = adapter.get_result_table(SAVE_PATH + '/test.csv')
-            print(schema)
-            print(rows)
+            adapter.create_table(QUERY_RESULT_SCHEMA, QUERY_RESULT_MYSQL, CSV_TEMP_PATH)
+            schema, rows = adapter.get_result_table(CSV_TEMP_PATH)
             self.assertEqual(schema, QUERY_RESULT_SCHEMA)
-            #self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
+            self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
 
 
 if __name__ == '__main__':
