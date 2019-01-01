@@ -27,7 +27,12 @@ class TestAdapterMysql(unittest.TestCase):
             self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
 
     def test_create_table(self):
-        pass
+        with AdapterMysql(DB_CONFIG) as adapter:
+            adapter.create_table(QUERY_RESULT_SCHEMA, QUERY_RESULT_MYSQL, 'test_writing')
+            schema, rows = adapter.get_result_table(QUERY_MYSQL)
+            self.assertEqual(schema, QUERY_RESULT_SCHEMA)
+            self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
+            adapter.delete_table('test_writing')
 
 
 class TestAdapterCsv(unittest.TestCase):
@@ -43,6 +48,7 @@ class TestAdapterCsv(unittest.TestCase):
             schema, rows = adapter.get_result_table(CSV_TEMP_PATH)
             self.assertEqual(schema, QUERY_RESULT_SCHEMA)
             self.assertEqual(list(rows), QUERY_RESULT_MYSQL)
+            adapter.delete_table(CSV_TEMP_PATH)
 
 
 if __name__ == '__main__':

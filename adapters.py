@@ -6,6 +6,7 @@ import logging
 import traceback as tb
 import csv
 import re
+import os
 
 
 class AdapterAbstract(ABC):
@@ -157,8 +158,48 @@ class AdapterMysql(AdapterAbstract):
             else:
                 break
 
-    def create_table(self, table_schema, row_iter, dataset_id, table_id):
-        raise NotImplementedError('Create Table in Mysql not implemented')
+    def create_table(self, table_schema, row_iter, table_name):
+        self.__create_empty_table(table_schema, table_name)
+        self.__insert_data_in_table(row_iter, table_name)
+
+    def __create_empty_table(self, table_schema, table_name):
+        table_schema_mysql = self.__format_table_schema(table_schema)
+        query = f'CREATE TABLE {table_name} ({table_schema_mysql})'
+        self.__cursor.execute(query)
+
+    def __format_table_schema(self, table_schema):
+        column_names, column_types = zip(*table_schema)
+        column_types = self.__map_to_mysql_datatypes(column_types)
+        formated_schema_list = [f'{col_name} {col_type}'
+                                for col_name, col_type in zip(column_names, column_types)]
+        formated_schema_string = ", ".join(formated_schema_list)
+        return formated_schema_string
+
+    def __map_to_mysql_datatypes(self, datatypes):
+        adapter_to_mysql = {
+            'INTEGER': 'INTEGER',
+            'FLOAT': 'FLOAT',
+            'TIMESTAMP': 'TIMESTAMP',
+            'DATE': 'DATE',
+            'TIME': 'TIME',
+            'DATETIME': 'DATETIME',
+            'STRING': 'TEXT',
+            'STRUCT': 'JSON',
+            'BYTES': 'BLOB',
+            'GEOMETRY': 'GEOMETRY'
+        }
+        mysql_datatypes = [adapter_to_mysql[datatype] for datatype in datatypes]
+        return mysql_datatypes
+
+    def __insert_data_in_table(self, row_iter, table_name):
+        query = f'INSERT INTO {table_name} VALUES '
+        for row in row_iter:
+            self.__cursor.execute(query + f'{row}')
+        self.__connection.commit()
+
+    def delete_table(self, table_name):
+        query = f'DROP TABLE {table_name}'
+        self.__cursor.execute(query)
 
 
 class AdapterCsv(AdapterAbstract):
@@ -201,3 +242,6 @@ class AdapterCsv(AdapterAbstract):
             next(reader)  # skip header
             for row in reader:
                 yield(tuple(row))
+
+    def delete_table(self, file_name):
+        os.remove(file_name)
