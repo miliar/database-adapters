@@ -3,3 +3,4 @@ adapters_config.py
 adapters_testconfig.py 
 bigquery_keys/ 
 save_data/ 
+commit.txt
