@@ -47,6 +47,10 @@ class AdapterAbstract(ABC):
         """ Should create Table from Source: table_schema and row_iter.
         Supports BQ datatypes """
 
+    @abstractmethod
+    def delete_table(self, *args):
+        """Should delete table"""
+
 
 class AdapterBigquery(AdapterAbstract):
     def __init__(self, service_acc):
@@ -61,8 +65,31 @@ class AdapterBigquery(AdapterAbstract):
         return table_schema, row_iter
 
     def __get_table_schema(self, query_result):
-        schema = [(column.name, column.field_type) for column in query_result.schema]
-        return schema
+        column_names = [column.name for column in query_result.schema]
+        column_types = [column.field_type for column in query_result.schema]
+        column_types = self.__map_to_adapter_datatypes(column_types)
+        schema = zip(column_names, column_types)
+        return list(schema)
+
+    def __map_to_adapter_datatypes(self, datatypes):
+        bq_to_adapter = {
+            'STRING': 'STRING',
+            'BYTES': 'STRING',
+            'INTEGER': 'INTEGER',
+            'INT64': 'INTEGER',
+            'FLOAT': 'FLOAT',
+            'FLOAT64': 'FLOAT',
+            'BOOLEAN': 'STRING',
+            'BOOL': 'STRING',
+            'TIMESTAMP': 'STRING',
+            'DATE': 'STRING',
+            'TIME': 'STRING',
+            'DATETIME': 'STRING',
+            'RECORD': 'STRING',
+            'STRUCT': 'STRING'
+        }
+        adapter_datatypes = [bq_to_adapter[datatype] for datatype in datatypes]
+        return adapter_datatypes
 
     def __get_row_iter(self, query_result):
         for row in query_result:
@@ -123,27 +150,27 @@ class AdapterMysql(AdapterAbstract):
             'FLOAT': 'FLOAT',
             'DOUBLE': 'FLOAT',
             'NULL': 'INTEGER',
-            'TIMESTAMP': 'TIMESTAMP',
+            'TIMESTAMP': 'STRING',
             'LONGLONG': 'INTEGER',
             'INT24': 'INTEGER',
-            'DATE': 'DATE',
-            'TIME': 'TIME',
-            'DATETIME': 'DATETIME',
+            'DATE': 'STRING',
+            'TIME': 'STRING',
+            'DATETIME': 'STRING',
             'YEAR': 'INTEGER',
-            'NEWDATE': 'DATE',
+            'NEWDATE': 'STRING',
             'VARCHAR': 'STRING',
             'BIT': 'INTEGER',
-            'JSON': 'STRUCT',
+            'JSON': 'STRING',
             'NEWDECIMAL': 'INTEGER',
             'ENUM': 'STRING',
             'SET': 'STRING',
-            'TINY_BLOB': 'BYTES',
-            'MEDIUM_BLOB': 'BYTES',
-            'LONG_BLOB': 'BYTES',
-            'BLOB': 'BYTES',
+            'TINY_BLOB': 'STRING',
+            'MEDIUM_BLOB': 'STRING',
+            'LONG_BLOB': 'STRING',
+            'BLOB': 'STRING',
             'VAR_STRING': 'STRING',
             'STRING': 'STRING',
-            'GEOMETRY': 'GEOMETRY'
+            'GEOMETRY': 'STRING'
         }
 
         adapter_datatypes = [mysql_to_adapter[FieldType.get_info(d)] for d in datatypes]
@@ -179,14 +206,7 @@ class AdapterMysql(AdapterAbstract):
         adapter_to_mysql = {
             'INTEGER': 'INTEGER',
             'FLOAT': 'FLOAT',
-            'TIMESTAMP': 'TIMESTAMP',
-            'DATE': 'DATE',
-            'TIME': 'TIME',
-            'DATETIME': 'DATETIME',
-            'STRING': 'TEXT',
-            'STRUCT': 'JSON',
-            'BYTES': 'BLOB',
-            'GEOMETRY': 'GEOMETRY'
+            'STRING': 'TEXT'
         }
         mysql_datatypes = [adapter_to_mysql[datatype] for datatype in datatypes]
         return mysql_datatypes
@@ -239,9 +259,26 @@ class AdapterCsv(AdapterAbstract):
     def __get_row_iter(self, file_name):
         with open(file_name, newline='') as csvfile:
             reader = csv.reader(csvfile)
-            next(reader)  # skip header
+            schema = self.__get_schema_from_header(next(reader))
             for row in reader:
-                yield(tuple(row))
+                converted_row = self.__convert_row(row, schema)
+                yield(converted_row)
+
+    def __convert_row(self, row, schema):
+        _, column_types = zip(*schema)
+        converted_row = []
+        for col_nr, item in enumerate(row):
+            item = self.__convert_to_python_type(item, column_types[col_nr])
+            converted_row.append(item)
+        return tuple(converted_row)
+
+    def __convert_to_python_type(self, item, schema_type):
+        if schema_type == 'INTEGER':
+            return int(item)
+        elif schema_type == 'FLOAT':
+            return float(item)
+        else:
+            return str(item)
 
     def delete_table(self, file_name):
         os.remove(file_name)
