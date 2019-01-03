@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import namedtuple
 from google.cloud import bigquery
 import mysql.connector
 from mysql.connector import FieldType
@@ -7,6 +8,7 @@ import traceback as tb
 import csv
 import re
 import os
+import itertools
 
 
 class AdapterAbstract(ABC):
@@ -40,16 +42,18 @@ class AdapterAbstract(ABC):
 
     @abstractmethod
     def get_result_table(self, *args):
-        """ Should return table_schema, row_iter. """
+        """ Should return a Table instance"""
 
     @abstractmethod
-    def create_table(self, table_schema, row_iter, *args):
-        """ Should create Table from Source: table_schema and row_iter.
-        Supports BQ datatypes """
+    def create_table(self, table, *args):
+        """ Should create a table from a Table instance """
 
     @abstractmethod
     def delete_table(self, *args):
-        """Should delete table"""
+        """Should delete a table"""
+
+
+Table = namedtuple('Table', ['schema', 'row_iter'])
 
 
 class AdapterBigquery(AdapterAbstract):
@@ -60,9 +64,9 @@ class AdapterBigquery(AdapterAbstract):
     def get_result_table(self, query):
         query_job = self.__client.query(query)
         query_result = query_job.result()
-        table_schema = self.__get_table_schema(query_result)
+        schema = self.__get_table_schema(query_result)
         row_iter = self.__get_row_iter(query_result)
-        return table_schema, row_iter
+        return Table(schema, row_iter)
 
     def __get_table_schema(self, query_result):
         column_names = [column.name for column in query_result.schema]
@@ -95,21 +99,39 @@ class AdapterBigquery(AdapterAbstract):
         for row in query_result:
             yield row.values()
 
-    def create_table(self, table_schema, row_iter, dataset_id, table_id):
+    def create_table(self, table, table_adress):
+        table_ref = self.__get_table_ref_from_adress(table_adress)
+        table_bq = self.__create_empty_table(table_ref, table.schema)
+        self.__insert_data_in_table(table_bq, table.row_iter)
+
+    def __get_table_ref_from_adress(self, table_adress):
+        dataset_id, table_id = table_adress.split('.')
         dataset_ref = self.__client.dataset(dataset_id)
         table_ref = dataset_ref.table(table_id)
-        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
-        table = bigquery.Table(table_ref, schema=schema)
-        table = self.__client.create_table(table)
-        table = self.__client.get_table(table_ref)
+        return table_ref
 
-        errors = self.__client.insert_rows(table, list(row_iter))
+    def __create_empty_table(self, table_ref, table_schema):
+        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
+        table_bq = bigquery.Table(table_ref, schema=schema)
+        table_bq = self.__client.create_table(table_bq)
+        return table_bq
+
+    def __insert_data_in_table(self, table_ref, row_iter, chunksize=1000):
+        # while True:
+        #     rows = list(itertools.islice(row_iter, chunksize))
+        #     if rows:
+        #         self.__insert_rows(table_ref, rows)
+        #     else:
+        #         break
+        self.__insert_rows(table_ref, list(row_iter))
+
+    def __insert_rows(self, table_ref, rows):
+        errors = self.__client.insert_rows(table_ref, rows)
         if errors != []:
             self.log_exception(errors)
 
-    def delete_table(self, dataset_id, table_id):
-        dataset_ref = self.__client.dataset(dataset_id)
-        table_ref = dataset_ref.table(table_id)
+    def delete_table(self, table_adress):
+        table_ref = self.__get_table_ref_from_adress(table_adress)
         self.__client.delete_table(table_ref)
 
 
@@ -130,9 +152,9 @@ class AdapterMysql(AdapterAbstract):
 
     def get_result_table(self, query):
         self.__cursor.execute(query)
-        table_schema = self.__get_table_schema()
+        schema = self.__get_table_schema()
         row_iter = self.__get_row_iter()
-        return table_schema, row_iter
+        return Table(schema, row_iter)
 
     def __get_table_schema(self):
         column_names = [column[0] for column in self.__cursor.description]
@@ -185,9 +207,9 @@ class AdapterMysql(AdapterAbstract):
             else:
                 break
 
-    def create_table(self, table_schema, row_iter, table_name):
-        self.__create_empty_table(table_schema, table_name)
-        self.__insert_data_in_table(row_iter, table_name)
+    def create_table(self, table, table_adress):
+        self.__create_empty_table(table.schema, table_adress)
+        self.__insert_data_in_table(table.row_iter, table_adress)
 
     def __create_empty_table(self, table_schema, table_name):
         table_schema_mysql = self.__format_table_schema(table_schema)
@@ -217,8 +239,8 @@ class AdapterMysql(AdapterAbstract):
             self.__cursor.execute(query + f'{row}')
         self.__connection.commit()
 
-    def delete_table(self, table_name):
-        query = f'DROP TABLE {table_name}'
+    def delete_table(self, table_adress):
+        query = f'DROP TABLE {table_adress}'
         self.__cursor.execute(query)
 
 
@@ -226,17 +248,17 @@ class AdapterCsv(AdapterAbstract):
     def __init__(self):
         super().__init__()
 
-    def create_table(self, table_schema, row_iter, file_name):
+    def create_table(self, table, file_name):
         with open(file_name, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow(table_schema)
-            for row in row_iter:
+            writer.writerow(table.schema)
+            for row in table.row_iter:
                 writer.writerow(row)
 
     def get_result_table(self, file_name):
-        table_schema = self.__get_table_schema(file_name)
+        schema = self.__get_table_schema(file_name)
         row_iter = self.__get_row_iter(file_name)
-        return table_schema, row_iter
+        return Table(schema, row_iter)
 
     def __get_table_schema(self, file_name):
         header = self.__get_table_header(file_name)
