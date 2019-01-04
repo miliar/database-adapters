@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from google.cloud import bigquery
 import mysql.connector
 from mysql.connector import FieldType
@@ -57,6 +57,23 @@ Table = namedtuple('Table', ['schema', 'row_iter'])
 
 
 class AdapterBigquery(AdapterAbstract):
+    BQ_TO_ADAPTER = {
+        'STRING': 'STRING',
+        'BYTES': 'STRING',
+        'INTEGER': 'INTEGER',
+        'INT64': 'INTEGER',
+        'FLOAT': 'FLOAT',
+        'FLOAT64': 'FLOAT',
+        'BOOLEAN': 'STRING',
+        'BOOL': 'STRING',
+        'TIMESTAMP': 'STRING',
+        'DATE': 'STRING',
+        'TIME': 'STRING',
+        'DATETIME': 'STRING',
+        'RECORD': 'STRING',
+        'STRUCT': 'STRING'
+    }
+
     def __init__(self, service_acc):
         super().__init__()
         self.__client = bigquery.Client.from_service_account_json(service_acc)
@@ -76,23 +93,7 @@ class AdapterBigquery(AdapterAbstract):
         return list(schema)
 
     def __map_to_adapter_datatypes(self, datatypes):
-        bq_to_adapter = {
-            'STRING': 'STRING',
-            'BYTES': 'STRING',
-            'INTEGER': 'INTEGER',
-            'INT64': 'INTEGER',
-            'FLOAT': 'FLOAT',
-            'FLOAT64': 'FLOAT',
-            'BOOLEAN': 'STRING',
-            'BOOL': 'STRING',
-            'TIMESTAMP': 'STRING',
-            'DATE': 'STRING',
-            'TIME': 'STRING',
-            'DATETIME': 'STRING',
-            'RECORD': 'STRING',
-            'STRUCT': 'STRING'
-        }
-        adapter_datatypes = [bq_to_adapter[datatype] for datatype in datatypes]
+        adapter_datatypes = [self.BQ_TO_ADAPTER[datatype] for datatype in datatypes]
         return adapter_datatypes
 
     def __get_row_iter(self, query_result):
@@ -126,7 +127,7 @@ class AdapterBigquery(AdapterAbstract):
 
     def __insert_rows(self, table_ref, rows):
         errors = self.__client.insert_rows(table_ref, rows)
-        if errors != []:
+        if errors:
             self.log_exception(errors)
 
     def delete_table(self, table_adress):
@@ -135,6 +136,43 @@ class AdapterBigquery(AdapterAbstract):
 
 
 class AdapterMysql(AdapterAbstract):
+    MYSQL_TO_ADAPTER = {
+        'DECIMAL': 'FLOAT',
+        'TINY': 'INTEGER',
+        'SHORT': 'INTEGER',
+        'LONG': 'INTEGER',
+        'FLOAT': 'FLOAT',
+        'DOUBLE': 'FLOAT',
+        'NULL': 'INTEGER',
+        'TIMESTAMP': 'STRING',
+        'LONGLONG': 'INTEGER',
+        'INT24': 'INTEGER',
+        'DATE': 'STRING',
+        'TIME': 'STRING',
+        'DATETIME': 'STRING',
+        'YEAR': 'INTEGER',
+        'NEWDATE': 'STRING',
+        'VARCHAR': 'STRING',
+        'BIT': 'INTEGER',
+        'JSON': 'STRING',
+        'NEWDECIMAL': 'INTEGER',
+        'ENUM': 'STRING',
+        'SET': 'STRING',
+        'TINY_BLOB': 'STRING',
+        'MEDIUM_BLOB': 'STRING',
+        'LONG_BLOB': 'STRING',
+        'BLOB': 'STRING',
+        'VAR_STRING': 'STRING',
+        'STRING': 'STRING',
+        'GEOMETRY': 'STRING'
+    }
+
+    ADAPTER_TO_MYSQL = {
+        'INTEGER': 'INTEGER',
+        'FLOAT': 'FLOAT',
+        'STRING': 'TEXT'
+    }
+
     def __init__(self, db_config):
         super().__init__()
         self.__db_config = db_config
@@ -163,38 +201,7 @@ class AdapterMysql(AdapterAbstract):
         return list(schema)
 
     def __map_to_adapter_datatypes(self, datatypes):
-        mysql_to_adapter = {
-            'DECIMAL': 'FLOAT',
-            'TINY': 'INTEGER',
-            'SHORT': 'INTEGER',
-            'LONG': 'INTEGER',
-            'FLOAT': 'FLOAT',
-            'DOUBLE': 'FLOAT',
-            'NULL': 'INTEGER',
-            'TIMESTAMP': 'STRING',
-            'LONGLONG': 'INTEGER',
-            'INT24': 'INTEGER',
-            'DATE': 'STRING',
-            'TIME': 'STRING',
-            'DATETIME': 'STRING',
-            'YEAR': 'INTEGER',
-            'NEWDATE': 'STRING',
-            'VARCHAR': 'STRING',
-            'BIT': 'INTEGER',
-            'JSON': 'STRING',
-            'NEWDECIMAL': 'INTEGER',
-            'ENUM': 'STRING',
-            'SET': 'STRING',
-            'TINY_BLOB': 'STRING',
-            'MEDIUM_BLOB': 'STRING',
-            'LONG_BLOB': 'STRING',
-            'BLOB': 'STRING',
-            'VAR_STRING': 'STRING',
-            'STRING': 'STRING',
-            'GEOMETRY': 'STRING'
-        }
-
-        adapter_datatypes = [mysql_to_adapter[FieldType.get_info(d)] for d in datatypes]
+        adapter_datatypes = [self.MYSQL_TO_ADAPTER[FieldType.get_info(d)] for d in datatypes]
         return adapter_datatypes
 
     def __get_row_iter(self, chunksize=10):
@@ -224,12 +231,7 @@ class AdapterMysql(AdapterAbstract):
         return formated_schema_string
 
     def __map_to_mysql_datatypes(self, datatypes):
-        adapter_to_mysql = {
-            'INTEGER': 'INTEGER',
-            'FLOAT': 'FLOAT',
-            'STRING': 'TEXT'
-        }
-        mysql_datatypes = [adapter_to_mysql[datatype] for datatype in datatypes]
+        mysql_datatypes = [self.ADAPTER_TO_MYSQL[datatype] for datatype in datatypes]
         return mysql_datatypes
 
     def __insert_data_in_table(self, row_iter, table_name):
@@ -244,6 +246,12 @@ class AdapterMysql(AdapterAbstract):
 
 
 class AdapterCsv(AdapterAbstract):
+    ADAPTER_TO_PYTHON = {
+        'INTEGER': int,
+        'FLOAT': float,
+        'STRING': str
+    }
+
     def __init__(self):
         super().__init__()
 
@@ -294,12 +302,8 @@ class AdapterCsv(AdapterAbstract):
         return tuple(converted_row)
 
     def __convert_to_python_type(self, item, schema_type):
-        if schema_type == 'INTEGER':
-            return int(item)
-        elif schema_type == 'FLOAT':
-            return float(item)
-        else:
-            return str(item)
+        convert = defaultdict(str, self.ADAPTER_TO_PYTHON)
+        return convert[schema_type](item)
 
     def delete_table(self, file_name):
         os.remove(file_name)
