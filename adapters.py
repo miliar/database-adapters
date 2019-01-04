@@ -117,13 +117,12 @@ class AdapterBigquery(AdapterAbstract):
         return table_bq
 
     def __insert_data_in_table(self, table_ref, row_iter, chunksize=1000):
-        # while True:
-        #     rows = list(itertools.islice(row_iter, chunksize))
-        #     if rows:
-        #         self.__insert_rows(table_ref, rows)
-        #     else:
-        #         break
-        self.__insert_rows(table_ref, list(row_iter))
+        while True:
+            rows = list(itertools.islice(row_iter, chunksize))
+            if rows:
+                self.__insert_rows(table_ref, rows)
+            else:
+                break
 
     def __insert_rows(self, table_ref, rows):
         errors = self.__client.insert_rows(table_ref, rows)
