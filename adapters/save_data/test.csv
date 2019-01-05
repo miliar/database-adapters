@@ -1,0 +1,3 @@
+"('test1', 'STRING')","('test2', 'INTEGER')","('test3', 'FLOAT')"
+value1_row1,1,1.1
+value1_row2,2,2.2

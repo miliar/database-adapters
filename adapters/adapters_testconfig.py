@@ -1,6 +1,6 @@
 import os
 import pickle
-from adapters import Table
+from adapter_abstract import Table
 
 
 QUERY_RESULT_SCHEMA = [

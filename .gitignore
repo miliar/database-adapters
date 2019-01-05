@@ -1,6 +1,5 @@
 __pycache__/ 
-adapters_config.py 
-bigquery_keys/
-mysql_keys/ 
-save_data/ 
+adapters/__pycache__/
+adapters/bigquery_keys/
+adapters/mysql_keys/ 
 commit.txt
