@@ -1,4 +1,4 @@
-from adapter_abstract import *
+from adapter_abstract import AdapterAbstract, Table
 from google.cloud import bigquery
 import itertools
 

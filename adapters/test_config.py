@@ -47,6 +47,6 @@ DB_CONFIG = {
 }
 """
 # CSV
-SAVE_PATH = os.path.abspath("save_data")
+SAVE_PATH = os.path.abspath("csv_data")
 CSV_TEMP_PATH = SAVE_PATH + "/temp.csv"
 CSV_PATH = SAVE_PATH + "/test.csv"

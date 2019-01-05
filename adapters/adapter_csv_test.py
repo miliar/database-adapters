@@ -1,5 +1,5 @@
 import unittest
-from adapters_testconfig import *
+from test_config import *
 from adapter_csv import AdapterCsv
 
 

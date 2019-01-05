@@ -1,4 +1,4 @@
-from adapter_abstract import *
+from adapter_abstract import AdapterAbstract, Table
 import mysql.connector
 from mysql.connector import FieldType
 
