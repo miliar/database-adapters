@@ -1,2 +1,2 @@
-#Adapters for MySql, Bigquery and CSV.
+# Adapters for MySql, Bigquery and CSV.
 Easy data transfer from one adapter to an other.
