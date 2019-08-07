@@ -1,2 +1,2 @@
 # Adapters for MySql, Bigquery and CSV.
-Easy data transfer from one adapter to an other.
+Prototype for easy data transfer between MySql, Bigquery and CSV.

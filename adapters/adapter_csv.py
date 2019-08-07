@@ -1,4 +1,4 @@
-from adapter_abstract import AdapterAbstract, Table
+from adapters.adapter_abstract import AdapterAbstract, Table
 from collections import defaultdict
 import csv
 import re

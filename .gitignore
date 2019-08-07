@@ -1,5 +1,2 @@
-__pycache__/ 
-adapters/__pycache__/
-adapters/bigquery_keys/
-adapters/mysql_keys/ 
-commit.txt
+test/bigquery_keys/
+test/mysql_keys/

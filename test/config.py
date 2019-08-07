@@ -1,6 +1,19 @@
 import os
 import pickle
-from adapter_abstract import Table
+from adapters.adapter_abstract import Table
+
+
+def get_query(table_ref):
+    return f"""
+            SELECT *
+            FROM `{table_ref}`
+            ORDER BY 2
+            """
+
+
+def get_config(file):
+    with open(os.path.abspath(file), 'rb') as f:
+        return pickle.load(f)
 
 
 QUERY_RESULT_SCHEMA = [
@@ -17,27 +30,11 @@ TABLE_NAME_W = 'test_writing'
 TABLE_NAME_R = 'test_table'
 
 
-def get_query(table_ref):
-    query = f"""
-            SELECT *
-            FROM `{table_ref}`
-            ORDER BY 2
-            """
-    return query
-
-
 # BIG_QUERY
 SERVICE_ACC = os.path.abspath("bigquery_keys/bigquery_testkey.json")
 DATASET = 'test_data'
 
 # MYSQL
-
-
-def get_config(file):
-    with open(os.path.abspath(file), 'rb') as f:
-        return pickle.load(f)
-
-
 DB_CONFIG = get_config("mysql_keys/test_config.pickle")
 """
 DB_CONFIG = {

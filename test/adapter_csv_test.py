@@ -1,6 +1,6 @@
 import unittest
-from test_config import *
-from adapter_csv import AdapterCsv
+from test.config import *
+from adapters.adapter_csv import AdapterCsv
 
 
 class TestAdapterCsv(unittest.TestCase):
@@ -12,7 +12,8 @@ class TestAdapterCsv(unittest.TestCase):
 
     def test_create_table(self):
         with AdapterCsv() as adapter:
-            table = Table(RESULT_TABLE.schema, (row for row in RESULT_TABLE.row_iter))
+            table = Table(RESULT_TABLE.schema,
+                          (row for row in RESULT_TABLE.row_iter))
             adapter.create_table(table, CSV_TEMP_PATH)
             table = adapter.get_result_table(CSV_TEMP_PATH)
             self.assertEqual(table.schema, RESULT_TABLE.schema)
@@ -22,7 +23,3 @@ class TestAdapterCsv(unittest.TestCase):
     def tearDownClass(cls):
         with AdapterCsv() as adapter:
             adapter.delete_table(CSV_TEMP_PATH)
-
-
-if __name__ == '__main__':
-    unittest.main(warnings='ignore')

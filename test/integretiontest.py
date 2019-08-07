@@ -1,9 +1,9 @@
 import unittest
-from test_config import *
-from adapter_bigquery import AdapterBigquery
-from adapter_mysql import AdapterMysql
-from adapter_csv import AdapterCsv
 import random
+from test.config import *
+from adapters.adapter_bigquery import AdapterBigquery
+from adapters.adapter_mysql import AdapterMysql
+from adapters.adapter_csv import AdapterCsv
 
 
 class TestAdapterBigqueryToAdapterMysql(unittest.TestCase):
@@ -53,7 +53,8 @@ class TestAdapterBigqueryToAdapterCsv(unittest.TestCase):
 class TestAdapterMysqlToAdapterBigquery(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        rand = random.randint(0, 1000)  # For unique table name; to avoid BQ delete table bug
+        # For unique table name; to avoid BQ delete table bug
+        rand = random.randint(0, 1000)
         cls.adress_table_write = f'{DATASET}.{TABLE_NAME_W}_{rand}'
         cls.adress_table_read = f'{TABLE_NAME_R}'
         cls.query_table_write = get_query(cls.adress_table_write)
@@ -98,7 +99,8 @@ class TestAdapterMysqlToAdapterCsv(unittest.TestCase):
 class TestAdapterCsvToAdapterBigquery(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        rand = random.randint(0, 1000)  # For unique table name; to avoid BQ delete table bug
+        # For unique table name; to avoid BQ delete table bug
+        rand = random.randint(0, 1000)
         cls.adress_table_write = f'{DATASET}.{TABLE_NAME_W}_{rand}'
         cls.query_table_write = get_query(cls.adress_table_write)
 
@@ -136,7 +138,3 @@ class TestAdapterCsvToAdapterMysql(unittest.TestCase):
     def tearDownClass(cls):
         with AdapterMysql(DB_CONFIG) as adapter:
             adapter.delete_table(cls.adress_table_write)
-
-
-if __name__ == '__main__':
-    unittest.main(warnings='ignore')

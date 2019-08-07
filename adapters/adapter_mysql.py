@@ -1,4 +1,4 @@
-from adapter_abstract import AdapterAbstract, Table
+from adapters.adapter_abstract import AdapterAbstract, Table
 import mysql.connector
 from mysql.connector import FieldType
 
@@ -69,7 +69,8 @@ class AdapterMysql(AdapterAbstract):
         return list(schema)
 
     def __map_to_adapter_datatypes(self, datatypes):
-        adapter_datatypes = [self.MYSQL_TO_ADAPTER[FieldType.get_info(d)] for d in datatypes]
+        adapter_datatypes = [
+            self.MYSQL_TO_ADAPTER[FieldType.get_info(d)] for d in datatypes]
         return adapter_datatypes
 
     def __get_row_iter(self, chunksize=10):
@@ -99,7 +100,8 @@ class AdapterMysql(AdapterAbstract):
         return formated_schema_string
 
     def __map_to_mysql_datatypes(self, datatypes):
-        mysql_datatypes = [self.ADAPTER_TO_MYSQL[datatype] for datatype in datatypes]
+        mysql_datatypes = [self.ADAPTER_TO_MYSQL[datatype]
+                           for datatype in datatypes]
         return mysql_datatypes
 
     def __insert_data_in_table(self, row_iter, table_name):

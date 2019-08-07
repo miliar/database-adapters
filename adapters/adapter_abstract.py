@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import logging
 import traceback as tb
+from abc import ABC, abstractmethod
 from collections import namedtuple
 
 
@@ -20,7 +20,8 @@ class AdapterAbstract(ABC):
         logger.setLevel(logging.ERROR)
         ch = logging.StreamHandler()
         ch.setLevel(logging.ERROR)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
         logger.addHandler(ch)
         return logger

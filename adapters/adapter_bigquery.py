@@ -1,4 +1,4 @@
-from adapter_abstract import AdapterAbstract, Table
+from adapters.adapter_abstract import AdapterAbstract, Table
 from google.cloud import bigquery
 import itertools
 
@@ -40,7 +40,8 @@ class AdapterBigquery(AdapterAbstract):
         return list(schema)
 
     def __map_to_adapter_datatypes(self, datatypes):
-        adapter_datatypes = [self.BQ_TO_ADAPTER[datatype] for datatype in datatypes]
+        adapter_datatypes = [self.BQ_TO_ADAPTER[datatype]
+                             for datatype in datatypes]
         return adapter_datatypes
 
     def __get_row_iter(self, query_result):
@@ -59,7 +60,8 @@ class AdapterBigquery(AdapterAbstract):
         return table_ref
 
     def __create_empty_table(self, table_ref, table_schema):
-        schema = [bigquery.SchemaField(*column_schema) for column_schema in table_schema]
+        schema = [bigquery.SchemaField(*column_schema)
+                  for column_schema in table_schema]
         table_bq = bigquery.Table(table_ref, schema=schema)
         table_bq = self.__client.create_table(table_bq)
         return table_bq
