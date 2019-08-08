@@ -1,5 +1,5 @@
 import unittest
-from test.config import *
+from config import *
 from adapters.adapter_mysql import AdapterMysql
 
 

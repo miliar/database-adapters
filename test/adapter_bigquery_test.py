@@ -1,6 +1,6 @@
 import unittest
 import random
-from test.config import *
+from config import *
 from adapters.adapter_bigquery import AdapterBigquery
 
 

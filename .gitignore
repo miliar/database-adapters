@@ -1,2 +1,4 @@
+adapters/__pycache__
+test/__pycache__
 test/bigquery_keys/
 test/mysql_keys/

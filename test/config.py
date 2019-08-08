@@ -29,13 +29,12 @@ RESULT_TABLE = Table(QUERY_RESULT_SCHEMA, QUERY_RESULT)
 TABLE_NAME_W = 'test_writing'
 TABLE_NAME_R = 'test_table'
 
-
 # BIG_QUERY
-SERVICE_ACC = os.path.abspath("bigquery_keys/bigquery_testkey.json")
+SERVICE_ACC = os.path.abspath("test/bigquery_keys/bigquery_testkey.json")
 DATASET = 'test_data'
 
 # MYSQL
-DB_CONFIG = get_config("mysql_keys/test_config.pickle")
+DB_CONFIG = get_config("test/mysql_keys/test_config.pickle")
 """
 DB_CONFIG = {
     'user': 'your_username',
@@ -43,7 +42,8 @@ DB_CONFIG = {
     'database': 'your_database'
 }
 """
+
 # CSV
-SAVE_PATH = os.path.abspath("csv_data")
+SAVE_PATH = os.path.abspath("test/csv_data")
 CSV_TEMP_PATH = SAVE_PATH + "/temp.csv"
 CSV_PATH = SAVE_PATH + "/test.csv"
